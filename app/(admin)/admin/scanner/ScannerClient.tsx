@@ -87,37 +87,42 @@ export default function ScannerClient() {
         processScannedQrPayload(decodedText);
       };
 
-      // Try environment camera (rear camera) first, then fallback to user/webcam
-      try {
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          onScanSuccess,
-          () => {}
-        );
-      } catch {
-        // Fallback for laptops / webcams
-        await html5QrCode.start(
-          { facingMode: "user" },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
-          onScanSuccess,
-          () => {}
-        );
+      // Enumerate camera devices
+      const cameras = await Html5Qrcode.getCameras();
+      if (!cameras || cameras.length === 0) {
+        throw new Error("No camera hardware found on this device.");
       }
+
+      // Use the last camera (usually back camera on mobile) or first camera (webcam on desktop)
+      const selectedCameraId = cameras.length > 1 ? cameras[cameras.length - 1].id : cameras[0].id;
+
+      await html5QrCode.start(
+        selectedCameraId,
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        onScanSuccess,
+        () => {}
+      );
 
       setCameraActive(true);
     } catch (err: any) {
       console.error("Camera error:", err);
-      let msg = "Camera access error. Please ensure camera permissions are granted in your browser.";
-      if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
-        msg = "Browser camera access requires HTTPS. You can upload a QR image file or type the Order ID below.";
+      let msg = err.message || "Unable to access camera.";
+
+      if (err.name === "NotAllowedError" || String(err).includes("Permission")) {
+        msg = "Camera permission was blocked by your browser. Please click the camera/lock icon in your browser address bar and select 'Allow'.";
+      } else if (err.name === "NotFoundError" || String(err).includes("No camera")) {
+        msg = "No camera hardware detected on this device. Please use the Upload QR Image or Manual Lookup options below.";
+      } else if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
+        msg = "Browser camera access requires HTTPS security. Please use the Upload QR Image option.";
       }
+
       setError(msg);
       setCameraActive(false);
     } finally {
       setCameraLoading(false);
     }
   };
+
 
   const stopCamera = async () => {
     if (html5QrCodeRef.current) {
