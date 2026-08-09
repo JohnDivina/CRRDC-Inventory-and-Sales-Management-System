@@ -1,10 +1,10 @@
 "use client";
 
-// app/(admin)/scanner/ScannerClient.tsx — Camera QR Scanner & Order Confirmation Component
+// app/(admin)/scanner/ScannerClient.tsx — Camera, Image Upload & Manual QR Order Scanner
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { formatPHP } from "@/types";
-import { QrCode, Search, CheckCircle2, AlertCircle, Camera, X } from "lucide-react";
+import { QrCode, Search, CheckCircle2, AlertCircle, Camera, Upload, X, StopCircle, FileImage } from "lucide-react";
 
 export default function ScannerClient() {
   const searchParams = useSearchParams();
@@ -23,7 +23,10 @@ export default function ScannerClient() {
   } | null>(null);
 
   const scannerRef = useRef<HTMLDivElement>(null);
+  const html5QrCodeRef = useRef<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraLoading, setCameraLoading] = useState(false);
 
   // Auto-fetch if orderId is passed in URL query
   useEffect(() => {
@@ -32,40 +35,126 @@ export default function ScannerClient() {
     }
   }, [initialOrderId]);
 
-  // Handle Camera Scanner Initialization
+  // Clean up scanner on unmount
+  useEffect(() => {
+    return () => {
+      if (html5QrCodeRef.current) {
+        try {
+          html5QrCodeRef.current.stop();
+        } catch {
+          // ignore cleanup errors
+        }
+      }
+    };
+  }, []);
+
+  const processScannedQrPayload = (decodedText: string) => {
+    let parsedId = decodedText.trim();
+    try {
+      const parsed = JSON.parse(decodedText);
+      if (parsed.orderId) parsedId = parsed.orderId;
+    } catch {
+      // raw string
+    }
+
+    setManualOrderId(parsedId);
+    handleFetchOrder(parsedId);
+  };
+
+  // Handle Camera Scanner Initialization (Mobile camera or Desktop Webcam)
   const startCamera = async () => {
+    setCameraLoading(true);
+    setError(null);
+
     try {
       const { Html5Qrcode } = await import("html5-qrcode");
+
+      // Stop existing instance if running
+      if (html5QrCodeRef.current) {
+        try {
+          await html5QrCodeRef.current.stop();
+        } catch {}
+      }
+
       const html5QrCode = new Html5Qrcode("reader");
+      html5QrCodeRef.current = html5QrCode;
+
+      const onScanSuccess = (decodedText: string) => {
+        try {
+          html5QrCode.stop();
+        } catch {}
+        setCameraActive(false);
+        processScannedQrPayload(decodedText);
+      };
+
+      // Try environment camera (rear camera) first, then fallback to user/webcam
+      try {
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          onScanSuccess,
+          () => {}
+        );
+      } catch {
+        // Fallback for laptops / webcams
+        await html5QrCode.start(
+          { facingMode: "user" },
+          { fps: 10, qrbox: { width: 250, height: 250 } },
+          onScanSuccess,
+          () => {}
+        );
+      }
 
       setCameraActive(true);
-      setError(null);
-
-      await html5QrCode.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 250, height: 250 } },
-        (decodedText) => {
-          html5QrCode.stop();
-          setCameraActive(false);
-
-          // Parse decoded text (either JSON payload or raw order UUID)
-          let parsedId = decodedText;
-          try {
-            const parsed = JSON.parse(decodedText);
-            if (parsed.orderId) parsedId = parsed.orderId;
-          } catch {
-            // raw string
-          }
-
-          setManualOrderId(parsedId);
-          handleFetchOrder(parsedId);
-        },
-        () => {} // Ignore scan errors per frame
-      );
     } catch (err: any) {
       console.error("Camera error:", err);
-      setError("Unable to access camera. Please enter the Order ID manually below.");
+      let msg = "Camera access error. Please ensure camera permissions are granted in your browser.";
+      if (window.location.protocol !== "https:" && window.location.hostname !== "localhost") {
+        msg = "Browser camera access requires HTTPS. You can upload a QR image file or type the Order ID below.";
+      }
+      setError(msg);
       setCameraActive(false);
+    } finally {
+      setCameraLoading(false);
+    }
+  };
+
+  const stopCamera = async () => {
+    if (html5QrCodeRef.current) {
+      try {
+        await html5QrCodeRef.current.stop();
+      } catch {}
+    }
+    setCameraActive(false);
+  };
+
+  // Handle File Upload Scanner (Reads QR code directly from image file)
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setLoading(true);
+    setError(null);
+    setSuccessMessage(null);
+
+    try {
+      const { Html5Qrcode } = await import("html5-qrcode");
+      const html5QrCode = new Html5Qrcode("file-reader-hidden");
+      
+      const decodedText = await html5QrCode.scanFile(file, false);
+      try {
+        html5QrCode.clear();
+      } catch {}
+
+      processScannedQrPayload(decodedText);
+    } catch (err: any) {
+      console.error("File QR scan error:", err);
+      setError("Could not detect a valid QR code in the uploaded image. Please ensure the QR code image is clear and readable.");
+    } finally {
+      setLoading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     }
   };
 
@@ -81,7 +170,7 @@ export default function ScannerClient() {
       const result = await res.json();
 
       if (!res.ok || !result.ok) {
-        throw new Error(result.error || "Order not found");
+        throw new Error(result.error || "Order not found. Please check the Order ID.");
       }
 
       setActiveOrder({
@@ -124,10 +213,13 @@ export default function ScannerClient() {
 
   return (
     <div className="scanner-view">
+      {/* Hidden element for file scanning */}
+      <div id="file-reader-hidden" style={{ display: "none" }}></div>
+
       <header className="scanner-header">
         <h1 className="scanner-title">QR Code Scanner &amp; Order Fulfiller</h1>
         <p className="scanner-subtitle">
-          Scan a customer&apos;s transaction QR code or enter their Order ID to confirm in-person cash payment.
+          Scan a customer&apos;s transaction QR code via camera, upload an image of the QR code, or enter their Order ID manually.
         </p>
       </header>
 
@@ -146,55 +238,94 @@ export default function ScannerClient() {
       )}
 
       <div className="scanner-grid">
-        {/* Left: Camera Scanner Box */}
+        {/* Box 1: Live Camera Scanner */}
         <div className="scanner-box">
           <div className="scanner-box__header">
             <Camera size={20} className="header-icon" aria-hidden="true" />
             <h2 className="box-title">Camera Scanner</h2>
           </div>
+          <p className="box-desc">Use a webcam or mobile camera to scan the customer&apos;s QR code live.</p>
 
           <div id="reader" className="camera-viewport" ref={scannerRef}>
             {!cameraActive && (
               <div className="camera-placeholder">
                 <QrCode size={48} className="placeholder-icon" aria-hidden="true" />
-                <button type="button" onClick={startCamera} className="start-cam-btn">
-                  Open Camera Scanner
+                <button
+                  type="button"
+                  onClick={startCamera}
+                  disabled={cameraLoading}
+                  className="start-cam-btn"
+                >
+                  {cameraLoading ? "Initializing Camera..." : "Open Camera Scanner"}
                 </button>
               </div>
             )}
           </div>
+
+          {cameraActive && (
+            <button type="button" onClick={stopCamera} className="stop-cam-btn">
+              <StopCircle size={16} aria-hidden="true" />
+              <span>Stop Camera</span>
+            </button>
+          )}
         </div>
 
-        {/* Right: Manual Lookup Form */}
-        <div className="lookup-box">
-          <h2 className="box-title">Manual Order Lookup</h2>
-          <p className="box-desc">Enter the Order ID printed below the customer&apos;s QR code:</p>
+        {/* Box 2: Upload QR Image File */}
+        <div className="scanner-box">
+          <div className="scanner-box__header">
+            <Upload size={20} className="header-icon" aria-hidden="true" />
+            <h2 className="box-title">Upload QR Image</h2>
+          </div>
+          <p className="box-desc">Upload a screenshot or photo of the customer&apos;s QR code (ideal for computers without webcams).</p>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleFetchOrder(manualOrderId);
-            }}
-            className="lookup-form"
+          <div
+            className="upload-dropzone"
+            onClick={() => fileInputRef.current?.click()}
           >
-            <div className="input-row">
-              <input
-                type="text"
-                placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
-                value={manualOrderId}
-                onChange={(e) => setManualOrderId(e.target.value)}
-                className="order-id-input"
-              />
-              <button type="submit" disabled={loading} className="lookup-btn">
-                <Search size={16} aria-hidden="true" />
-                <span>{loading ? "Searching..." : "Lookup"}</span>
-              </button>
-            </div>
-          </form>
+            <FileImage size={40} className="upload-icon" aria-hidden="true" />
+            <span className="upload-text">Click to choose or drag &amp; drop QR image</span>
+            <span className="upload-subtext">PNG, JPG, WEBP formats supported</span>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              onChange={handleFileUpload}
+              style={{ display: "none" }}
+            />
+          </div>
         </div>
       </div>
 
-      {/* Active Order Confirmation Modal / Card */}
+      {/* Box 3: Manual Order ID Lookup Form */}
+      <div className="lookup-box">
+        <h2 className="box-title">Manual Order ID Lookup</h2>
+        <p className="box-desc">Enter or paste the Order ID printed below the customer&apos;s QR code:</p>
+
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleFetchOrder(manualOrderId);
+          }}
+          className="lookup-form"
+        >
+          <div className="input-row">
+            <input
+              type="text"
+              placeholder="e.g. 550e8400-e29b-41d4-a716-446655440000"
+              value={manualOrderId}
+              onChange={(e) => setManualOrderId(e.target.value)}
+              className="order-id-input"
+            />
+            <button type="submit" disabled={loading} className="lookup-btn">
+              <Search size={16} aria-hidden="true" />
+              <span>{loading ? "Searching..." : "Lookup Order"}</span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      {/* Active Order Confirmation Modal */}
       {activeOrder && (
         <div className="order-modal-backdrop">
           <div className="order-modal">
@@ -220,6 +351,20 @@ export default function ScannerClient() {
                 <span>Total Cash Amount Due:</span>
                 <span className="price-tag">{formatPHP(Number(activeOrder.order.total_price_php))}</span>
               </div>
+
+              {activeOrder.items && activeOrder.items.length > 0 && (
+                <div className="modal-items-list">
+                  <span className="items-title">Purchased Items:</span>
+                  <ul>
+                    {activeOrder.items.map((item: any, idx: number) => (
+                      <li key={idx} className="item-row">
+                        <span>{item.quantity}x {item.unit_type}</span>
+                        <span className="item-price">{formatPHP(Number(item.line_total_php))}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               <div className="modal-notice">
                 <CheckCircle2 size={16} aria-hidden="true" />
@@ -262,15 +407,24 @@ export default function ScannerClient() {
         .scanner-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); }
         .scanner-box, .lookup-box { background-color: var(--color-paper); border: 1px solid var(--color-border); border-radius: var(--radius-xl); padding: var(--space-6); }
 
-        .scanner-box__header { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-4); }
+        .scanner-box__header { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-2); }
         .header-icon { color: var(--color-primary); }
         .box-title { font-family: var(--font-display); font-size: var(--text-xl); color: var(--color-heading); margin: 0; }
         .box-desc { font-size: var(--text-xs); color: var(--color-ink-2); margin: 0 0 var(--space-4); }
 
         .camera-viewport { aspect-ratio: 4 / 3; background-color: var(--color-paper-2); border: 2px dashed var(--color-border); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; overflow: hidden; }
-        .camera-placeholder { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); text-align: center; }
+        .camera-placeholder { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); text-align: center; padding: var(--space-4); }
         .placeholder-icon { color: var(--color-primary); opacity: 0.5; }
-        .start-cam-btn { padding: var(--space-3) var(--space-5); background-color: var(--color-primary); color: var(--color-primary-fg); border: none; border-radius: var(--radius-md); font-weight: 600; font-size: var(--text-sm); cursor: pointer; }
+        .start-cam-btn { padding: var(--space-3) var(--space-5); background-color: var(--color-primary); color: var(--color-primary-fg); border: none; border-radius: var(--radius-md); font-weight: 600; font-size: var(--text-sm); cursor: pointer; transition: opacity var(--dur-fast); }
+        .start-cam-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .stop-cam-btn { margin-top: var(--space-3); width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); background-color: oklch(from var(--color-error) l c h / 0.1); color: var(--color-error); border: 1px solid var(--color-error); border-radius: var(--radius-md); font-weight: 600; font-size: var(--text-xs); cursor: pointer; }
+
+        .upload-dropzone { aspect-ratio: 4 / 3; background-color: var(--color-paper-2); border: 2px dashed var(--color-border); border-radius: var(--radius-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-2); padding: var(--space-4); text-align: center; cursor: pointer; transition: border-color var(--dur-fast), background-color var(--dur-fast); }
+        .upload-dropzone:hover { border-color: var(--color-primary); background-color: oklch(from var(--color-primary) l c h / 0.04); }
+        .upload-icon { color: var(--color-primary); }
+        .upload-text { font-size: var(--text-sm); font-weight: 600; color: var(--color-heading); }
+        .upload-subtext { font-size: var(--text-xs); color: var(--color-ink-3); }
 
         .lookup-form { display: flex; flex-direction: column; gap: var(--space-4); }
         .input-row { display: flex; gap: var(--space-2); }
@@ -293,6 +447,12 @@ export default function ScannerClient() {
 
         .total-highlight { display: flex; justify-content: space-between; align-items: center; padding: var(--space-4); background-color: var(--color-paper-2); border-radius: var(--radius-md); font-weight: 600; font-size: var(--text-sm); }
         .price-tag { font-family: var(--font-mono); font-size: var(--text-xl); color: var(--color-heading); font-weight: 700; }
+
+        .modal-items-list { font-size: var(--text-xs); background-color: var(--color-paper-2); padding: var(--space-3); border-radius: var(--radius-md); }
+        .items-title { font-weight: 600; color: var(--color-heading); margin-bottom: var(--space-2); display: block; }
+        .modal-items-list ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 4px; }
+        .item-row { display: flex; justify-content: space-between; color: var(--color-ink-2); }
+        .item-price { font-family: var(--font-mono); font-weight: 600; }
 
         .modal-notice { display: flex; gap: var(--space-2); font-size: var(--text-xs); color: var(--color-ink-2); line-height: 1.4; background-color: oklch(from var(--color-primary) l c h / 0.06); padding: var(--space-3); border-radius: var(--radius-md); }
 
