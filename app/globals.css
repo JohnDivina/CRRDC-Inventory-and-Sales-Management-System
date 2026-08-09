@@ -1,26 +1,317 @@
+/* ============================================================
+ * Hallmark · macrostructure: Long Document · tone: institutional
+ * anchor hue: green · genre: editorial
+ * theme: custom (CLSU/CRRDC brand)
+ * vibe: "agricultural research credible institutional"
+ * paper: oklch(98% 0.005 145) · accent: oklch(88% 0.18 98)
+ * display: DM Serif Display + Inter · mono: JetBrains Mono
+ * nav: N6 Masthead · footer: Ft5 Statement
+ * ============================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap");
 @import "tailwindcss";
 
+/* ─────────────────────────────────────────────────────────────
+ * HALLMARK DESIGN TOKENS — CRRDC Brand Palette (OKLCH)
+ * All color/font/space references must use var(--token-name)
+ * No inline hex/oklch values allowed past this block.
+ * ──────────────────────────────────────────────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Paper & ink */
+  --color-paper:          oklch(98.5% 0.005 145);   /* near-white, faint green tint */
+  --color-paper-2:        oklch(96%   0.008 145);   /* subtle section separation */
+  --color-paper-3:        oklch(93%   0.010 145);   /* hover fills, row stripes */
+  --color-ink:            oklch(18%   0.020 145);   /* primary body text */
+  --color-ink-2:          oklch(38%   0.015 145);   /* secondary/muted text */
+  --color-ink-3:          oklch(55%   0.012 145);   /* placeholders, disabled */
+
+  /* Brand greens (CLSU Green #009639 / Green Cobra #1E6031) */
+  --color-primary:        oklch(55%   0.180 145);   /* CLSU Green — nav, primary btns */
+  --color-primary-dark:   oklch(38%   0.140 148);   /* Green Cobra — dark surfaces & headers */
+  --color-heading:        oklch(38%   0.140 148);   /* Headings color in light mode */
+  --color-primary-hover:  oklch(48%   0.165 146);   /* hover on primary elements */
+  --color-primary-fg:     oklch(98%   0.005 145);   /* text on primary surfaces */
+
+  /* Brand yellows (CLSU Yellow #FFD700 / Gold #E0A70D) */
+  --color-accent:         oklch(88%   0.180  98);   /* CLSU Yellow — badges, CTAs */
+  --color-accent-dim:     oklch(72%   0.160  80);   /* Gold — accent hover state */
+  --color-accent-fg:      oklch(18%   0.020 145);   /* text on accent fills */
+
+  /* Functional */
+  --color-border:         oklch(88%   0.012 145);
+  --color-border-strong:  oklch(75%   0.020 145);
+  --color-focus:          oklch(55%   0.180 145);   /* same as primary for consistency */
+  --color-error:          oklch(52%   0.200  28);
+  --color-success:        oklch(55%   0.180 145);   /* reuse green */
+  --color-warning:        oklch(72%   0.160  80);   /* reuse gold */
 }
 
+
+
+:root {
+  /* ── Typography (Apple SF Pro & hum-07 Plus Jakarta Sans Stack) ── */
+  --font-display:  -apple-system, BlinkMacSystemFont, "SF Pro Display", "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --font-body:     -apple-system, BlinkMacSystemFont, "SF Pro Text", "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --font-mono:     "JetBrains Mono", "SF Mono", "Courier New", monospace;
+
+  /* Type scale (fluid, 4pt base) */
+  --text-xs:        0.75rem;    /* 12px */
+  --text-sm:        0.875rem;   /* 14px */
+  --text-base:      1rem;       /* 16px */
+  --text-lg:        1.125rem;   /* 18px */
+  --text-xl:        1.25rem;    /* 20px */
+  --text-2xl:       1.5rem;     /* 24px */
+  --text-3xl:       1.875rem;   /* 30px */
+  --text-4xl:       2.25rem;    /* 36px */
+  --text-display-s: 3rem;       /* 48px */
+  --text-display:   3.75rem;    /* 60px */
+
+  /* ── Spacing (4pt scale) ────────────────────────────────── */
+  --space-1:   0.25rem;   /* 4px  */
+  --space-2:   0.5rem;    /* 8px  */
+  --space-3:   0.75rem;   /* 12px */
+  --space-4:   1rem;      /* 16px */
+  --space-5:   1.25rem;   /* 20px */
+  --space-6:   1.5rem;    /* 24px */
+  --space-7:   1.75rem;   /* 28px */
+  --space-8:   2rem;      /* 32px */
+  --space-10:  2.5rem;    /* 40px */
+  --space-12:  3rem;      /* 48px */
+  --space-16:  4rem;      /* 64px */
+  --space-20:  5rem;      /* 80px */
+  --space-24:  6rem;      /* 96px */
+  --space-32:  8rem;      /* 128px */
+  --space-sm:  var(--space-4);
+  --space-md:  var(--space-8);
+  --space-lg:  var(--space-16);
+  --space-xl:  var(--space-24);
+  --space-2xl: var(--space-32);
+  --space-3xl: 10rem;     /* 160px — section gap minimum */
+
+  /* ── Radius ─────────────────────────────────────────────── */
+  --radius-sm:  0.25rem;
+  --radius-md:  0.5rem;
+  --radius-lg:  0.75rem;
+  --radius-xl:  1rem;
+  --radius-full: 9999px;
+
+  /* ── Motion ──────────────────────────────────────────────── */
+  --dur-fast:    120ms;
+  --dur-base:    200ms;
+  --dur-slow:    350ms;
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in:     cubic-bezier(0.4, 0, 1, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Layout ──────────────────────────────────────────────── */
+  --container-max:  1200px;
+  --container-text: 720px;
+  --gutter:         clamp(1rem, 4vw, 3rem);
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * TAILWIND v4 @theme — maps Hallmark tokens to TW utilities
+ * ──────────────────────────────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper:          var(--color-paper);
+  --color-paper-2:        var(--color-paper-2);
+  --color-paper-3:        var(--color-paper-3);
+  --color-ink:            var(--color-ink);
+  --color-ink-2:          var(--color-ink-2);
+  --color-ink-3:          var(--color-ink-3);
+  --color-primary:        var(--color-primary);
+  --color-primary-dark:   var(--color-primary-dark);
+  --color-primary-hover:  var(--color-primary-hover);
+  --color-primary-fg:     var(--color-primary-fg);
+  --color-accent:         var(--color-accent);
+  --color-accent-dim:     var(--color-accent-dim);
+  --color-accent-fg:      var(--color-accent-fg);
+  --color-border:         var(--color-border);
+  --color-border-strong:  var(--color-border-strong);
+  --color-error:          var(--color-error);
+  --color-success:        var(--color-success);
+  --font-display:         var(--font-display);
+  --font-body:            var(--font-body);
+  --font-mono:            var(--font-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ─────────────────────────────────────────────────────────────
+ * BASE RESET + GLOBAL STYLES
+ * ──────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  overflow-x: clip;
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: clip;
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+  font-size: var(--text-base);
+  line-height: 1.6;
+  padding-top: 4.5rem;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Headings — Apple SF Pro & hum-07 sans-serif display stack */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+/* Links */
+a {
+  color: var(--color-primary);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  transition: color var(--dur-fast) var(--ease-out);
+}
+a:hover {
+  color: var(--color-primary-dark);
+}
+
+/* Focus visible — always visible, never animated */
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 3px;
+  border-radius: var(--radius-sm);
+}
+
+/* Code / mono */
+code, pre, kbd {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+}
+
+/* Images */
+img, svg, video {
+  max-width: 100%;
+  display: block;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Page enter transition */
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.page-enter {
+  animation: page-enter var(--dur-slow) var(--ease-out) both;
+}
+
+/* ─────────────────────────────────────────────────────────────
+ * HALLMARK hum-07 BUTTON & CARD HOVER ANIMATION SYSTEM
+ * ──────────────────────────────────────────────────────────── */
+
+/* 1. Global Button Hover & Press Animation Stack */
+button:not(:disabled),
+.btn,
+.action-btn,
+.landing__cta-btn,
+.landing__shop-now-btn,
+.product-card__btn,
+.cart-popover__btn,
+.table-action-btn,
+.confirm-btn,
+.download-qr-btn,
+.track-order-link,
+.cancel-order-btn,
+.stepper-btn:not(:disabled) {
+  transition: transform 140ms cubic-bezier(0.2, 0.7, 0.3, 1),
+              box-shadow 140ms cubic-bezier(0.2, 0.7, 0.3, 1),
+              background-color 160ms ease,
+              border-color 160ms ease,
+              color 160ms ease;
+  will-change: transform, box-shadow;
+}
+
+button:not(:disabled):hover,
+.btn:hover,
+.action-btn:hover,
+.landing__cta-btn:hover,
+.landing__shop-now-btn:hover,
+.product-card__btn:hover,
+.cart-popover__btn:hover,
+.table-action-btn:hover,
+.confirm-btn:hover,
+.download-qr-btn:hover,
+.track-order-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px oklch(0% 0 0 / 0.14);
+}
+
+button:not(:disabled):active,
+.btn:active,
+.action-btn:active,
+.landing__cta-btn:active,
+.landing__shop-now-btn:active,
+.product-card__btn:active,
+.cart-popover__btn:active,
+.table-action-btn:active,
+.confirm-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 6px oklch(0% 0 0 / 0.1);
+  transition-duration: 70ms;
+}
+
+/* Button Icon Micro-arrow animation */
+button:hover svg,
+.btn:hover svg,
+.action-btn:hover svg,
+.landing__cta-btn:hover svg,
+.landing__shop-now-btn:hover svg {
+  transform: translateX(3px);
+  transition: transform 200ms cubic-bezier(0.2, 0.7, 0.3, 1);
+}
+
+/* 2. Global Card Hover Animation Stack */
+.card,
+.product-card,
+.landing__category-card,
+.hum-stage__panel,
+.hum-bignum,
+.metric-card,
+.table-card,
+.analytics-card,
+.stock-card,
+.chart-box,
+.checkout-success__card,
+.order-modal {
+  transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 220ms ease;
+  will-change: transform, box-shadow;
+}
+
+.card:hover,
+.product-card:hover,
+.landing__category-card:hover,
+.hum-stage__panel:hover,
+.hum-bignum:hover,
+.metric-card:hover,
+.stock-card:hover,
+.chart-box:hover {
+  transform: translateY(-4px) scale(1.008);
+  box-shadow: 0 14px 35px oklch(0% 0 0 / 0.12);
+  border-color: var(--color-primary);
 }
