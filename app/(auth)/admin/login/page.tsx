@@ -8,7 +8,14 @@ export const metadata: Metadata = {
   description: "Sign in to the CRRDC admin panel.",
 };
 
-export default function AdminLoginPage() {
+interface AdminLoginPageProps {
+  searchParams: Promise<{ error?: string }>;
+}
+
+export default async function AdminLoginPage({ searchParams }: AdminLoginPageProps) {
+  const params = await searchParams;
+  const error = params?.error;
+
   return (
     <div className="login-page">
       <div className="login-card">
@@ -17,6 +24,35 @@ export default function AdminLoginPage() {
           <ArrowLeft size={16} aria-hidden="true" />
           <span>Return to Home</span>
         </Link>
+
+        {error === "unauthorized_domain" && (
+          <div style={{
+            backgroundColor: "#fef2f2",
+            border: "1px solid #fca5a5",
+            color: "#991b1b",
+            padding: "12px 16px",
+            borderRadius: "8px",
+            fontSize: "14px",
+            marginBottom: "20px"
+          }}>
+            <strong>Access Denied:</strong> Only institutional <code>@clsu.edu.ph</code> Google accounts are permitted to access the admin portal.
+          </div>
+        )}
+
+        {error === "auth_failed" && (
+          <div style={{
+            backgroundColor: "#fef2f2",
+            border: "1px solid #fca5a5",
+            color: "#991b1b",
+            padding: "12px 16px",
+            borderRadius: "8px",
+            fontSize: "14px",
+            marginBottom: "20px"
+          }}>
+            Authentication failed. Please try again.
+          </div>
+        )}
+
 
         <div className="login-header">
           <div className="login-brand">

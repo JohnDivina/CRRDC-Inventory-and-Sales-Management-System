@@ -9,11 +9,20 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+    if (!error && data?.user) {
+      const email = data.user.email || "";
+      // Restrict access strictly to @clsu.edu.ph domain
+      if (email.endsWith("@clsu.edu.ph")) {
+        return NextResponse.redirect(`${origin}${next}`);
+      } else {
+        // Sign out unauthorized user and redirect back with error
+        await supabase.auth.signOut();
+        return NextResponse.redirect(`${origin}/admin/login?error=unauthorized_domain`);
+      }
     }
   }
 
   return NextResponse.redirect(`${origin}/admin/login?error=auth_failed`);
 }
+
