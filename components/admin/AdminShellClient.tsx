@@ -25,7 +25,7 @@ export default function AdminShellClient({
     adminEmail.toLowerCase() === "johnrey_divina@clsu.edu.ph";
 
   return (
-    <div className="admin-shell page-enter">
+    <div className="admin-shell">
       {/* Mobile top bar with hamburger button */}
       <div className="admin-mobile-header">
         <button
@@ -92,7 +92,7 @@ export default function AdminShellClient({
       </aside>
 
 
-      <main className="admin-main" id="admin-main">
+      <main className="admin-main page-enter" id="admin-main">
         {children}
       </main>
     </div>

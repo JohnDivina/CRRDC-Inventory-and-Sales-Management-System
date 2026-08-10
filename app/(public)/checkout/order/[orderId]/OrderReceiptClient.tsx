@@ -1,7 +1,7 @@
 "use client";
 
 // app/(public)/checkout/order/[orderId]/OrderReceiptClient.tsx — Customer Live Order Status Tracker & Receipt
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Component } from "react";
 import Link from "next/link";
 import { formatPHP, breakdownRiceQty, type Order, type OrderItem } from "@/types";
 import { CheckCircle2, Clock, ArrowLeft, RefreshCw, Download, Building2, PackageCheck, Receipt, AlertCircle } from "lucide-react";
@@ -11,8 +11,47 @@ interface OrderReceiptClientProps {
   items: OrderItem[];
 }
 
-export default function OrderReceiptClient({ order: initialOrder, items }: OrderReceiptClientProps) {
+// Global React Error Boundary to prevent "This page could not be loaded" crash screen
+class ReceiptErrorBoundary extends Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.error("Receipt Page Error Boundary caught error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: "40px 20px", textAlign: "center", maxWidth: "600px", margin: "40px auto", backgroundColor: "#fff", borderRadius: "16px", border: "1px solid #e5e7eb" }}>
+          <AlertCircle size={40} color="#dc2626" style={{ margin: "0 auto 16px" }} />
+          <h2 style={{ fontSize: "1.25rem", fontWeight: "700", color: "#111827", marginBottom: "8px" }}>Order Tracker Temporarily Unavailable</h2>
+          <p style={{ fontSize: "0.875rem", color: "#4b5563", marginBottom: "24px" }}>
+            Your order has been recorded successfully. Please proceed to the CRRDC Cashier to complete your payment.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            style={{ padding: "10px 20px", backgroundColor: "#1e6031", color: "#fff", border: "none", borderRadius: "8px", fontWeight: "600", cursor: "pointer" }}
+          >
+            Reload Order Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function OrderReceiptClientInternal({ order: initialOrder, items: initialItems }: OrderReceiptClientProps) {
   const [order, setOrder] = useState<Order>(initialOrder);
+  const [itemList, setItemList] = useState<OrderItem[]>(initialItems || []);
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefreshStatus = useCallback(async () => {
@@ -23,7 +62,11 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
       if (res.ok) {
         const data = await res.json();
         if (data.ok && data.data && data.data.id) {
-          setOrder((prev) => ({ ...prev, ...data.data }));
+          const { items: fetchedItems, ...fetchedOrder } = data.data;
+          setOrder((prev) => ({ ...prev, ...fetchedOrder }));
+          if (Array.isArray(fetchedItems) && fetchedItems.length > 0) {
+            setItemList(fetchedItems);
+          }
         }
       }
     } catch {
@@ -45,7 +88,7 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
   const handleDownloadPDF = async () => {
     try {
       const { generatePDFReceipt } = await import("@/lib/pdf-receipt");
-      generatePDFReceipt(order, items);
+      generatePDFReceipt(order, itemList);
     } catch (err) {
       console.error("PDF generation failed:", err);
     }
@@ -53,7 +96,8 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
 
   const isPaymentConfirmed = order?.status === "payment_confirmed" || order?.status === "completed";
   const isCompleted = order?.status === "completed";
-  const currentOrderType = (order?.order_type || "regular").toLowerCase();
+  const currentOrderType = String(order?.order_type || "regular").toLowerCase();
+
 
   return (
     <div className="tracker-page">
@@ -182,21 +226,21 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
           <div className="items-section">
             <h3 className="section-heading">Order Line Items</h3>
             <div className="items-table">
-              {(items || []).map((item) => {
-                const isRice = item.unit_type === "kg";
-                const breakdown = isRice ? breakdownRiceQty(item.quantity) : null;
+              {(itemList || []).map((item) => {
+                const isRice = item?.unit_type === "kg";
+                const breakdown = isRice ? breakdownRiceQty(item?.quantity) : null;
                 return (
-                  <div key={item.id} className="item-row">
+                  <div key={item?.id || Math.random()} className="item-row">
                     <div>
-                      <strong className="item-name">{item.product?.name || "Agricultural Item"}</strong>
+                      <strong className="item-name">{item?.product?.name || "Agricultural Item"}</strong>
                       <span className="item-qty">
-                        {item.quantity} {item.unit_type === "kg" ? "kg" : "unit(s)"} @ {formatPHP(item.unit_price_php)}
+                        {item?.quantity || 1} {item?.unit_type === "kg" ? "kg" : "unit(s)"} @ {formatPHP(item?.unit_price_php)}
                         {isRice && breakdown && breakdown.sacks > 0
                           ? ` (${breakdown.sacks} sack${breakdown.sacks > 1 ? "s" : ""} ${breakdown.looseKg > 0 ? `+ ${breakdown.looseKg} kg` : ""})`
                           : ""}
                       </span>
                     </div>
-                    <span className="item-price">{formatPHP(item.line_total_php)}</span>
+                    <span className="item-price">{formatPHP(item?.line_total_php)}</span>
                   </div>
                 );
               })}
@@ -290,3 +334,12 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
     </div>
   );
 }
+
+export default function OrderReceiptClient(props: OrderReceiptClientProps) {
+  return (
+    <ReceiptErrorBoundary>
+      <OrderReceiptClientInternal {...props} />
+    </ReceiptErrorBoundary>
+  );
+}
+

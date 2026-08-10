@@ -21,7 +21,23 @@ export async function GET(request: Request, { params }: RouteProps) {
         .single();
 
       if (order) {
-        return NextResponse.json({ ok: true, data: order });
+        const { data: items } = await supabase
+          .from("order_items")
+          .select("*, products(name, category)")
+          .eq("order_id", orderId);
+
+        const formattedItems = (items || []).map((i: any) => ({
+          ...i,
+          product: i.products ? { name: i.products.name, category: i.products.category } : undefined,
+        }));
+
+        return NextResponse.json({
+          ok: true,
+          data: {
+            ...order,
+            items: formattedItems,
+          },
+        });
       }
     }
 
@@ -38,6 +54,7 @@ export async function GET(request: Request, { params }: RouteProps) {
         qr_payload: "",
         created_at: new Date().toISOString(),
         confirmed_at: null,
+        items: [],
       },
     });
   } catch (err: any) {

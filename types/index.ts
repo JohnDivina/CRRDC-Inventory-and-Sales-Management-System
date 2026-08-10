@@ -175,11 +175,12 @@ export interface RiceQuantityBreakdown {
  * 1 sack = 25 kg (fixed threshold).
  * e.g., 30 kg → { sacks: 1, looseKg: 5, totalKg: 30 }
  */
-export function breakdownRiceQty(totalKg: number): RiceQuantityBreakdown {
+export function breakdownRiceQty(totalKg?: number | null): RiceQuantityBreakdown {
+  const qty = typeof totalKg === "number" && !isNaN(totalKg) ? totalKg : Number(totalKg) || 0;
   const SACK_KG = 25;
-  const sacks = Math.floor(totalKg / SACK_KG);
-  const looseKg = totalKg % SACK_KG;
-  return { sacks, looseKg, totalKg };
+  const sacks = Math.floor(qty / SACK_KG);
+  const looseKg = qty % SACK_KG;
+  return { sacks, looseKg, totalKg: qty };
 }
 
 /**
@@ -188,7 +189,7 @@ export function breakdownRiceQty(totalKg: number): RiceQuantityBreakdown {
  *       25 → "1 sack"
  *       15 → "15 kg"
  */
-export function formatRiceQty(totalKg: number): string {
+export function formatRiceQty(totalKg?: number | null): string {
   const { sacks, looseKg } = breakdownRiceQty(totalKg);
   if (sacks === 0) return `${looseKg} kg`;
   if (looseKg === 0) return `${sacks} ${sacks === 1 ? "sack" : "sacks"}`;
@@ -199,10 +200,12 @@ export function formatRiceQty(totalKg: number): string {
  * Format price as Philippine peso.
  * e.g., 1250 → "₱1,250.00"
  */
-export function formatPHP(amount: number): string {
+export function formatPHP(amount?: number | null): string {
+  const num = typeof amount === "number" && !isNaN(amount) ? amount : Number(amount) || 0;
   return new Intl.NumberFormat("en-PH", {
     style: "currency",
     currency: "PHP",
     minimumFractionDigits: 2,
-  }).format(amount);
+  }).format(num);
 }
+

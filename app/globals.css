@@ -179,6 +179,8 @@ body:has(.admin-shell) {
   background-color: var(--color-paper-2);
   position: relative;
   width: 100%;
+  transform: none !important;
+  animation: none !important;
 }
 
 .admin-mobile-header {
@@ -214,13 +216,13 @@ body:has(.admin-shell) {
 }
 
 .admin-sidebar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  bottom: 0;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
   width: 260px;
-  height: 100vh;
-  height: 100dvh;
+  height: 100vh !important;
+  height: 100dvh !important;
   flex-shrink: 0;
   background-color: var(--color-primary-dark);
   display: flex;
@@ -228,7 +230,8 @@ body:has(.admin-shell) {
   border-right: 1px solid oklch(from var(--color-primary-dark) calc(l - 0.08) c h);
   transition: transform var(--dur-slow) var(--ease-out);
   z-index: 100;
-  overflow: hidden;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 .admin-sidebar__header {
   padding: var(--space-5) var(--space-6);
