@@ -7,14 +7,22 @@ import AdminSidebarNav from "@/components/admin/AdminSidebarNav";
 
 interface AdminShellClientProps {
   adminEmail: string;
+  isMasterAdmin?: boolean;
   children: React.ReactNode;
 }
 
 export default function AdminShellClient({
   adminEmail,
+  isMasterAdmin = false,
   children,
 }: AdminShellClientProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const isMaster =
+    isMasterAdmin ||
+    adminEmail.toLowerCase().includes("johnrey_divina") ||
+    adminEmail.toLowerCase().includes("johnreydivina") ||
+    adminEmail.toLowerCase() === "johnrey_divina@clsu.edu.ph";
 
   return (
     <div className="admin-shell page-enter">
@@ -65,14 +73,14 @@ export default function AdminShellClient({
           </Link>
         </div>
 
-        <div onClick={() => setSidebarOpen(false)}>
-          <AdminSidebarNav />
+        <div className="admin-sidebar__nav-wrapper" onClick={() => setSidebarOpen(false)}>
+          <AdminSidebarNav isMasterAdmin={isMaster} />
         </div>
 
         <div className="admin-sidebar__footer">
           <div className="admin-sidebar__user-info">
             <span className="admin-sidebar__user">{adminEmail}</span>
-            <span className="admin-sidebar__role">Administrator</span>
+            <span className="admin-sidebar__role">{isMaster ? "Master Administrator" : "Staff Administrator"}</span>
           </div>
 
           <form action="/api/auth/signout" method="post">
@@ -83,6 +91,7 @@ export default function AdminShellClient({
         </div>
       </aside>
 
+
       <main className="admin-main" id="admin-main">
         {children}
       </main>
@@ -90,12 +99,14 @@ export default function AdminShellClient({
       <style>{`
         .admin-shell {
           display: flex;
+          position: fixed;
+          inset: 0;
+          width: 100vw;
           height: 100vh;
           height: 100dvh;
           overflow: hidden;
           background-color: var(--color-paper-2);
-          position: relative;
-          width: 100%;
+          z-index: 1000;
         }
 
         .admin-mobile-header {
@@ -131,13 +142,8 @@ export default function AdminShellClient({
         }
 
         .admin-sidebar {
-          position: fixed;
-          top: 0;
-          left: 0;
-          bottom: 0;
-          height: 100vh;
-          height: 100dvh;
           width: 260px;
+          height: 100%;
           flex-shrink: 0;
           background-color: var(--color-primary-dark);
           display: flex;
@@ -145,7 +151,6 @@ export default function AdminShellClient({
           border-right: 1px solid oklch(from var(--color-primary-dark) calc(l - 0.08) c h);
           transition: transform var(--dur-slow) var(--ease-out);
           z-index: 100;
-          overflow-y: auto;
         }
         .admin-sidebar__header {
           padding: var(--space-5) var(--space-6);
@@ -196,6 +201,13 @@ export default function AdminShellClient({
           letter-spacing: 0.01em;
         }
 
+        .admin-sidebar__nav-wrapper {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          overflow-y: auto;
+        }
+
         .admin-sidebar__footer {
           padding: var(--space-4) var(--space-6);
           border-top: 1px solid oklch(from var(--color-primary-dark) calc(l - 0.08) c h);
@@ -203,6 +215,7 @@ export default function AdminShellClient({
           flex-direction: column;
           gap: var(--space-3);
           margin-top: auto;
+          background-color: var(--color-primary-dark);
         }
         .admin-sidebar__user-info {
           display: flex;
@@ -241,15 +254,42 @@ export default function AdminShellClient({
         }
 
         .admin-main {
-          margin-left: 260px;
           flex: 1;
-          height: 100vh;
-          height: 100dvh;
+          height: 100%;
           overflow-y: auto;
           padding: var(--space-8);
           min-width: 0;
-          width: calc(100% - 260px);
         }
+
+        @media (max-width: 768px) {
+          .admin-shell {
+            position: relative;
+            inset: auto;
+            width: 100%;
+            height: auto;
+            min-height: 100vh;
+            overflow: visible;
+            flex-direction: column;
+          }
+          .admin-sidebar {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            width: 280px;
+            z-index: 1000;
+            transform: translateX(-100%);
+          }
+          .admin-sidebar[data-open="true"] {
+            transform: translateX(0);
+          }
+          .admin-main {
+            height: auto;
+            overflow-y: visible;
+            padding: var(--space-4);
+          }
+        }
+
 
 
         @media (max-width: 768px) {

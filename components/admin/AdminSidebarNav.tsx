@@ -25,14 +25,26 @@ const NAV_ITEMS = [
 ];
 
 
-export default function AdminSidebarNav() {
+interface AdminSidebarNavProps {
+  isMasterAdmin?: boolean;
+}
+
+export default function AdminSidebarNav({ isMasterAdmin = false }: AdminSidebarNavProps) {
   const pathname = usePathname();
+
+  const navItems = NAV_ITEMS.filter((item) => {
+    if (item.href === "/admin/accounts") {
+      return isMasterAdmin;
+    }
+    return true;
+  });
 
   return (
     <nav className="sidebar-nav">
       <ul className="sidebar-nav__list" role="list">
-        {NAV_ITEMS.map(({ href, label, Icon }) => {
+        {navItems.map(({ href, label, Icon }) => {
           const isActive = pathname === href || (href !== "/admin/dashboard" && pathname.startsWith(href));
+
           return (
             <li key={href}>
               <Link

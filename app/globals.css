@@ -154,16 +154,17 @@ body {
   font-family: var(--font-body);
   font-size: var(--text-base);
   line-height: 1.6;
-  padding-top: 4.5rem;
+  padding: 0;
+  margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Remove body top padding on admin routes */
-body:has(.admin-shell),
-body:has(.login-page) {
-  padding-top: 0 !important;
+.public-layout {
+  padding-top: 4.5rem;
+  min-height: 100vh;
 }
+
 
 
 /* Headings — Apple SF Pro & hum-07 sans-serif display stack */

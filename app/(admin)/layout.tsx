@@ -38,7 +38,7 @@ export default async function AdminLayout({
         const adminClient = createAdminClient();
         const { data: profile } = await adminClient
           .from("admin_profiles")
-          .select("status")
+          .select("status, role")
           .eq("id", user.id)
           .single();
 
@@ -47,18 +47,22 @@ export default async function AdminLayout({
         }
       }
     } catch (err: any) {
-      // If next/navigation redirect exception, rethrow
       if (err?.digest?.startsWith("NEXT_REDIRECT")) {
         throw err;
       }
-      // If DB error, redirect to login for safety
       redirect("/admin/login");
     }
   }
 
+  const isMaster =
+    adminEmail.toLowerCase().includes("johnrey_divina") ||
+    adminEmail.toLowerCase().includes("johnreydivina") ||
+    adminEmail.toLowerCase() === "johnrey_divina@clsu.edu.ph";
+
   return (
-    <AdminShellClient adminEmail={adminEmail}>
+    <AdminShellClient adminEmail={adminEmail} isMasterAdmin={isMaster}>
       {children}
     </AdminShellClient>
   );
 }
+

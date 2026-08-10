@@ -25,12 +25,15 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
   }, [order.id]);
 
   const handleRefreshStatus = async () => {
+    if (!order?.id) return;
     setRefreshing(true);
     try {
       const res = await fetch(`/api/orders/${order.id}`);
       if (res.ok) {
         const data = await res.json();
-        if (data.ok) setOrder(data.data);
+        if (data.ok && data.data && data.data.id) {
+          setOrder((prev) => ({ ...prev, ...data.data }));
+        }
       }
     } catch {
       // Ignore network glitches during polling
@@ -39,8 +42,9 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
     }
   };
 
-  const isPaymentConfirmed = order.status === "payment_confirmed" || order.status === "completed";
-  const isCompleted = order.status === "completed";
+  const isPaymentConfirmed = order?.status === "payment_confirmed" || order?.status === "completed";
+  const isCompleted = order?.status === "completed";
+  const currentOrderType = (order?.order_type || "regular").toLowerCase();
 
   return (
     <div className="tracker-page">
@@ -75,7 +79,7 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
                 <h4 className="step-title">Step 1: CRRDC Cashier Payment</h4>
                 <p className="step-desc">
                   {isPaymentConfirmed
-                    ? `Payment Confirmed! Billing No: ${order.billing_number || "Generated"}`
+                    ? `Payment Confirmed! Billing No: ${order?.billing_number || "Generated"}`
                     : "Proceed to CRRDC Cashier and present your Order ID."}
                 </p>
               </div>
@@ -124,8 +128,8 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
           <div className="receipt-header">
             <div>
               <span className="order-id-label">ORDER ID:</span>
-              <h1 className="order-id-val">{order.id}</h1>
-              {order.billing_number && (
+              <h1 className="order-id-val">{order?.id || "N/A"}</h1>
+              {order?.billing_number && (
                 <span className="billing-badge">Billing Reference No: <strong>{order.billing_number}</strong></span>
               )}
             </div>
@@ -145,19 +149,19 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
           <div className="meta-grid">
             <div className="meta-box">
               <span className="meta-label">Customer Name:</span>
-              <strong className="meta-val">{order.customer_name || "Guest Customer"}</strong>
+              <strong className="meta-val">{order?.customer_name || "Guest Customer"}</strong>
             </div>
             <div className="meta-box">
               <span className="meta-label">Order Type:</span>
-              <strong className="meta-val">{order.order_type.toUpperCase()}</strong>
+              <strong className="meta-val">{currentOrderType.toUpperCase()}</strong>
             </div>
-            {order.customer_org && (
+            {order?.customer_org && (
               <div className="meta-box">
                 <span className="meta-label">Organization / Center:</span>
                 <strong className="meta-val">{order.customer_org}</strong>
               </div>
             )}
-            {order.preferred_pickup_date && (
+            {order?.preferred_pickup_date && (
               <div className="meta-box">
                 <span className="meta-label">Preferred Pickup Date:</span>
                 <strong className="meta-val">{order.preferred_pickup_date}</strong>
@@ -168,7 +172,7 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
           <div className="items-section">
             <h3 className="section-heading">Order Line Items</h3>
             <div className="items-table">
-              {items.map((item) => {
+              {(items || []).map((item) => {
                 const isRice = item.unit_type === "kg";
                 const breakdown = isRice ? breakdownRiceQty(item.quantity) : null;
                 return (
@@ -192,15 +196,16 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
           <div className="summary-section">
             <div className="summary-row">
               <span>Total Recorded Value:</span>
-              <strong className="summary-price">{formatPHP(order.total_price_php)}</strong>
+              <strong className="summary-price">{formatPHP(Number(order?.total_price_php || 0))}</strong>
             </div>
             <div className="summary-row">
               <span>Amount Paid:</span>
               <strong className="summary-price">
-                {order.order_type === "complimentary" ? "₱0.00 (Complimentary)" : formatPHP(order.amount_paid_php || order.total_price_php)}
+                {currentOrderType === "complimentary" ? "₱0.00 (Complimentary)" : formatPHP(Number(order?.amount_paid_php ?? order?.total_price_php ?? 0))}
               </strong>
             </div>
           </div>
+
 
           <div className="card-footer">
             <button type="button" onClick={handleRefreshStatus} disabled={refreshing} className="refresh-btn">
