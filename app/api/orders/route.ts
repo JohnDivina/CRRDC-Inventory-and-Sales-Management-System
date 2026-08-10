@@ -81,7 +81,18 @@ export async function POST(request: Request) {
       );
     }
 
-    const { items, notes } = parsed.data;
+    const {
+      items,
+      customerName,
+      orderType,
+      customerOrg,
+      purpose,
+      preferredPickupDate,
+      requestionerName,
+      projectCode,
+      projectTitle,
+      notes,
+    } = parsed.data;
 
     // Use service role admin client to perform atomic order creation
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -173,7 +184,13 @@ export async function POST(request: Request) {
         id: orderId,
         guest_id: guestId,
         status: "pending",
+        order_type: orderType || "regular",
+        customer_name: customerName,
+        customer_org: customerOrg || null,
+        purpose: purpose || null,
+        preferred_pickup_date: preferredPickupDate || null,
         total_price_php: totalOrderPHP,
+        amount_paid_php: orderType === "complimentary" ? 0 : totalOrderPHP,
         qr_payload: qrPayloadStr,
         notes: notes || null,
       });
@@ -184,6 +201,22 @@ export async function POST(request: Request) {
           { ok: false, error: "Failed to create order record." },
           { status: 500 }
         );
+      }
+
+      // If project-based, create project_orders entry with 20th-of-month follow-up date
+      if (orderType === "project") {
+        const today = new Date();
+        const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 20);
+        const followUpDateStr = nextMonth.toISOString().split("T")[0];
+
+        await supabase.from("project_orders").insert({
+          order_id: orderId,
+          requestioner_name: requestionerName || customerName,
+          organization: customerOrg || "N/A",
+          project_code: projectCode || null,
+          project_title: projectTitle || null,
+          follow_up_date: followUpDateStr,
+        });
       }
 
       // 4. Insert order items
@@ -225,3 +258,4 @@ export async function POST(request: Request) {
     );
   }
 }
+

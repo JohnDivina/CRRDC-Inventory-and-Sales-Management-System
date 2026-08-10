@@ -90,9 +90,11 @@ export default function AdminShellClient({
       <style>{`
         .admin-shell {
           display: flex;
-          min-height: 100svh;
+          min-height: 100vh;
+          min-height: 100dvh;
           background-color: var(--color-paper-2);
           position: relative;
+          width: 100%;
         }
 
         .admin-mobile-header {
@@ -128,6 +130,12 @@ export default function AdminShellClient({
         }
 
         .admin-sidebar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          bottom: 0;
+          height: 100vh;
+          height: 100dvh;
           width: 260px;
           flex-shrink: 0;
           background-color: var(--color-primary-dark);
@@ -136,6 +144,7 @@ export default function AdminShellClient({
           border-right: 1px solid oklch(from var(--color-primary-dark) calc(l - 0.08) c h);
           transition: transform var(--dur-slow) var(--ease-out);
           z-index: 100;
+          overflow-y: auto;
         }
         .admin-sidebar__header {
           padding: var(--space-5) var(--space-6);
@@ -231,10 +240,13 @@ export default function AdminShellClient({
         }
 
         .admin-main {
+          margin-left: 260px;
           flex: 1;
-          overflow: auto;
+          min-height: 100vh;
+          min-height: 100dvh;
           padding: var(--space-8);
           min-width: 0;
+          width: calc(100% - 260px);
         }
 
         @media (max-width: 768px) {
@@ -263,9 +275,12 @@ export default function AdminShellClient({
             transform: translateX(0);
           }
           .admin-main {
+            margin-left: 0;
+            width: 100%;
             padding: var(--space-4);
           }
         }
+
       `}</style>
     </div>
   );

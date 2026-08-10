@@ -3,15 +3,27 @@
 // components/admin/AdminSidebarNav.tsx — Client component for active navigation tab styling
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, QrCode, Package, ShoppingBag, TrendingUp, Globe } from "lucide-react";
+import {
+  LayoutDashboard,
+  Receipt,
+  PackageCheck,
+  Briefcase,
+  Package,
+  Users,
+  QrCode,
+  Globe
+} from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Dashboard", Icon: LayoutDashboard },
-  { href: "/admin/scanner", label: "QR Scanner", Icon: QrCode },
-  { href: "/admin/inventory", label: "Inventory", Icon: Package },
-  { href: "/admin/orders", label: "Orders", Icon: ShoppingBag },
-  { href: "/admin/sales", label: "Sales History", Icon: TrendingUp },
+  { href: "/admin/orders", label: "Cashier Orders", Icon: Receipt },
+  { href: "/admin/releases", label: "Seed Lab Releases", Icon: PackageCheck },
+  { href: "/admin/project-billings", label: "Project Billings", Icon: Briefcase },
+  { href: "/admin/inventory", label: "Inventory & Audit", Icon: Package },
+  { href: "/admin/accounts", label: "Staff Accounts", Icon: Users },
+  { href: "/admin/scanner", label: "QR Scanner (Legacy)", Icon: QrCode },
 ];
+
 
 export default function AdminSidebarNav() {
   const pathname = usePathname();

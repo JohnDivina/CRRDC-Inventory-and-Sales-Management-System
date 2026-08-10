@@ -8,6 +8,14 @@ export const orderItemSchema = z.object({
 
 export const createOrderSchema = z.object({
   items: z.array(orderItemSchema).min(1, "Cart cannot be empty"),
+  customerName: z.string().min(2, "Customer name is required"),
+  orderType: z.enum(["regular", "institutional", "project", "complimentary"]).default("regular"),
+  customerOrg: z.string().optional(),
+  purpose: z.string().optional(),
+  preferredPickupDate: z.string().optional(),
+  requestionerName: z.string().optional(),
+  projectCode: z.string().optional(),
+  projectTitle: z.string().optional(),
   notes: z.string().optional(),
 });
 

@@ -159,6 +159,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Remove body top padding on admin routes */
+body:has(.admin-shell),
+body:has(.login-page) {
+  padding-top: 0 !important;
+}
+
+
 /* Headings — Apple SF Pro & hum-07 sans-serif display stack */
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-display);

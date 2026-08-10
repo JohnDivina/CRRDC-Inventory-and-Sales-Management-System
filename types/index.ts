@@ -3,7 +3,16 @@
 
 export type ProductCategory = "seed" | "rice" | "other";
 export type ProductUnitType = "packet" | "kg" | "sack" | "unit";
-export type OrderStatus = "pending" | "completed" | "cancelled";
+export type OrderStatus =
+  | "pending"
+  | "payment_confirmed"
+  | "project_pending"
+  | "completed"
+  | "cancelled";
+export type OrderType = "regular" | "institutional" | "project" | "complimentary";
+
+export type AdminRole = "master_admin" | "cashier" | "seed_lab" | "admin";
+export type AdminStatus = "pending" | "active" | "suspended";
 
 // ─── Product ────────────────────────────────────────────────
 export interface Product {
@@ -16,10 +25,12 @@ export interface Product {
   /** For rice products: fixed 25-kg sack price. null = price_php * 25 */
   sack_price_php: number | null;
   stock_qty: number;
+  low_stock_threshold?: number;
   image_url: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  updated_by?: string | null;
 }
 
 // ─── Cart (client-side only — not persisted to DB) ──────────
@@ -43,13 +54,69 @@ export interface Order {
   id: string;
   guest_id: string;
   status: OrderStatus;
+  order_type: OrderType;
+  customer_name?: string | null;
+  customer_org?: string | null;
+  purpose?: string | null;
+  preferred_pickup_date?: string | null;
   total_price_php: number;
+  amount_paid_php?: number;
+  billing_number?: string | null;
   qr_payload: string;
-  confirmed_by: string | null;
-  confirmed_at: string | null;
-  notes: string | null;
+  confirmed_by?: string | null;
+  confirmed_at?: string | null;
+  released_by?: string | null;
+  released_at?: string | null;
+  notes?: string | null;
+  created_at: string;
+  items?: OrderItem[];
+}
+
+// ─── Project Order (Delayed billing tracking) ─────────────
+export interface ProjectOrder {
+  id: string;
+  order_id: string;
+  requestioner_name: string;
+  organization: string;
+  project_code?: string | null;
+  project_title?: string | null;
+  billing_number?: string | null;
+  follow_up_date: string;
+  payment_confirmed_at?: string | null;
+  payment_confirmed_by?: string | null;
+  created_at: string;
+  order?: Order;
+}
+
+// ─── Admin Profile ─────────────────────────────────────────
+export interface AdminProfile {
+  id: string;
+  email: string;
+  full_name: string;
+  position?: string | null;
+  designation?: string | null;
+  office?: string | null;
+  role: AdminRole;
+  status: AdminStatus;
+  approved_by?: string | null;
+  approved_at?: string | null;
   created_at: string;
 }
+
+// ─── Inventory Audit Log ───────────────────────────────────
+export interface InventoryAuditLog {
+  id: string;
+  product_id: string;
+  changed_by?: string | null;
+  changed_by_name?: string | null;
+  change_type: "manual_edit" | "order_deduction" | "manual_adjustment";
+  old_stock_qty: number;
+  new_stock_qty: number;
+  note?: string | null;
+  created_at: string;
+  product_name?: string;
+}
+
 
 // ─── Order Item ─────────────────────────────────────────────
 export interface OrderItem {
