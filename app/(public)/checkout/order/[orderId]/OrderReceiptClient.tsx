@@ -1,10 +1,9 @@
 "use client";
 
 // app/(public)/checkout/order/[orderId]/OrderReceiptClient.tsx — Customer Live Order Status Tracker & Receipt
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { formatPHP, breakdownRiceQty, type Order, type OrderItem } from "@/types";
-import { generatePDFReceipt } from "@/lib/pdf-receipt";
 import { CheckCircle2, Clock, ArrowLeft, RefreshCw, Download, Building2, PackageCheck, Receipt, AlertCircle } from "lucide-react";
 
 interface OrderReceiptClientProps {
@@ -16,15 +15,7 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
   const [order, setOrder] = useState<Order>(initialOrder);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Poll status every 5 seconds for live progress tracking
-  useEffect(() => {
-    const interval = setInterval(() => {
-      handleRefreshStatus();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [order.id]);
-
-  const handleRefreshStatus = async () => {
+  const handleRefreshStatus = useCallback(async () => {
     if (!order?.id) return;
     setRefreshing(true);
     try {
@@ -39,6 +30,24 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
       // Ignore network glitches during polling
     } finally {
       setRefreshing(false);
+    }
+  }, [order?.id]);
+
+  // Poll status every 5 seconds for live progress tracking
+  useEffect(() => {
+    if (!order?.id) return;
+    const interval = setInterval(() => {
+      handleRefreshStatus();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [order?.id, handleRefreshStatus]);
+
+  const handleDownloadPDF = async () => {
+    try {
+      const { generatePDFReceipt } = await import("@/lib/pdf-receipt");
+      generatePDFReceipt(order, items);
+    } catch (err) {
+      console.error("PDF generation failed:", err);
     }
   };
 
@@ -138,13 +147,14 @@ export default function OrderReceiptClient({ order: initialOrder, items }: Order
               <button
                 type="button"
                 className="download-pdf-btn"
-                onClick={() => generatePDFReceipt(order, items)}
+                onClick={handleDownloadPDF}
               >
                 <Download size={18} aria-hidden="true" />
                 <span>Download PDF Receipt</span>
               </button>
             )}
           </div>
+
 
           <div className="meta-grid">
             <div className="meta-box">
