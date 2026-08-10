@@ -15,8 +15,12 @@ CREATE TABLE IF NOT EXISTS admin_profiles (
   status      TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'active', 'suspended')),
   approved_by UUID REFERENCES admin_profiles(id),
   approved_at TIMESTAMPTZ,
-  created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+ALTER TABLE admin_profiles ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
 
 -- 2. DAILY BILLING NUMBER COUNTER (MM-DD-XX format)
 CREATE TABLE IF NOT EXISTS daily_billing_counter (

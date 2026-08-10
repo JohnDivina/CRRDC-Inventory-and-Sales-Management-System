@@ -14,9 +14,9 @@ export async function GET(request: Request, { params }: RouteProps) {
 
     if (isRealSupabase) {
       const supabase = createAdminClient();
-      const { data: order, error } = await supabase
+      const { data: order } = await supabase
         .from("orders")
-        .select("id, status, total_price_php, created_at, confirmed_at")
+        .select("*")
         .eq("id", orderId)
         .single();
 
@@ -30,8 +30,12 @@ export async function GET(request: Request, { params }: RouteProps) {
       ok: true,
       data: {
         id: orderId,
+        guest_id: "guest",
         status: "pending",
+        order_type: "regular",
         total_price_php: 450,
+        amount_paid_php: 450,
+        qr_payload: "",
         created_at: new Date().toISOString(),
         confirmed_at: null,
       },

@@ -90,8 +90,9 @@ export default function AdminShellClient({
       <style>{`
         .admin-shell {
           display: flex;
-          min-height: 100vh;
-          min-height: 100dvh;
+          height: 100vh;
+          height: 100dvh;
+          overflow: hidden;
           background-color: var(--color-paper-2);
           position: relative;
           width: 100%;
@@ -242,12 +243,14 @@ export default function AdminShellClient({
         .admin-main {
           margin-left: 260px;
           flex: 1;
-          min-height: 100vh;
-          min-height: 100dvh;
+          height: 100vh;
+          height: 100dvh;
+          overflow-y: auto;
           padding: var(--space-8);
           min-width: 0;
           width: calc(100% - 260px);
         }
+
 
         @media (max-width: 768px) {
           .admin-shell {

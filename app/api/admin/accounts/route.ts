@@ -28,9 +28,7 @@ export async function PATCH(request: Request) {
     }
 
     const supabase = createAdminClient();
-    const updateData: any = {
-      updated_at: new Date().toISOString(),
-    };
+    const updateData: any = {};
 
     if (role) updateData.role = role;
     if (status) {
@@ -42,6 +40,7 @@ export async function PATCH(request: Request) {
     if (position !== undefined) updateData.position = position;
     if (designation !== undefined) updateData.designation = designation;
     if (office !== undefined) updateData.office = office;
+
 
     const { error } = await supabase
       .from("admin_profiles")

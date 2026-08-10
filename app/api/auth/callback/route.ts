@@ -20,6 +20,11 @@ export async function GET(request: Request) {
       // Restrict access strictly to @clsu.edu.ph domain
       if (email.endsWith("@clsu.edu.ph")) {
         try {
+          const isMasterAdminEmail =
+            email.toLowerCase().includes("johnrey_divina") ||
+            email.toLowerCase().includes("johnreydivina") ||
+            email.toLowerCase() === "johnrey_divina@clsu.edu.ph";
+
           const adminClient = createAdminClient();
           const { data: profile } = await adminClient
             .from("admin_profiles")
@@ -28,21 +33,38 @@ export async function GET(request: Request) {
             .single();
 
           if (!profile) {
-            // Auto-create pending profile request for new CLSU staff
+            // Auto-create profile request for new CLSU staff
             const fullName =
               user.user_metadata?.full_name ||
               user.user_metadata?.name ||
               email.split("@")[0];
 
+            const initialStatus = isMasterAdminEmail ? "active" : "pending";
+            const initialRole = isMasterAdminEmail ? "master_admin" : "admin";
+
             await adminClient.from("admin_profiles").insert({
               id: user.id,
               email: email,
               full_name: fullName,
-              role: "admin",
-              status: "pending",
+              role: initialRole,
+              status: initialStatus,
             });
 
+            if (isMasterAdminEmail) {
+              return NextResponse.redirect(`${origin}${next}`);
+            }
+
             return NextResponse.redirect(`${origin}/admin/pending-approval`);
+          }
+
+          // If profile exists but is master admin email, force status active & role master_admin
+          if (isMasterAdminEmail && (profile.status !== "active" || profile.role !== "master_admin")) {
+            await adminClient
+              .from("admin_profiles")
+              .update({ status: "active", role: "master_admin" })
+              .eq("id", user.id);
+
+            return NextResponse.redirect(`${origin}${next}`);
           }
 
           if (profile.status === "pending") {
@@ -57,6 +79,7 @@ export async function GET(request: Request) {
           }
 
           return NextResponse.redirect(`${origin}${next}`);
+
         } catch {
           // If admin_profiles table is not ready yet, fallback gracefully
           return NextResponse.redirect(`${origin}${next}`);
