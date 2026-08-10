@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 import type { Order } from "@/types";
 import { formatPHP } from "@/types";
-import { PackageCheck, CheckCircle2, AlertCircle, RefreshCw, Box } from "lucide-react";
+import { PackageCheck, CheckCircle2, AlertCircle, RefreshCw, Box, AlertTriangle, Calendar } from "lucide-react";
 
 export default function ReleasesClient() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -12,6 +12,9 @@ export default function ReleasesClient() {
   const [releasingId, setReleasingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Soft pickup date warning modal state
+  const [pendingReleaseOrder, setPendingReleaseOrder] = useState<Order | null>(null);
 
   const fetchConfirmedOrders = async () => {
     setLoading(true);
@@ -31,8 +34,20 @@ export default function ReleasesClient() {
     fetchConfirmedOrders();
   }, []);
 
-  const handleConfirmRelease = async (orderId: string) => {
+  const handleReleaseClick = (order: Order) => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const isFuturePickup = order.preferred_pickup_date && order.preferred_pickup_date > todayStr;
+
+    if (isFuturePickup) {
+      setPendingReleaseOrder(order);
+    } else {
+      executeConfirmRelease(order.id);
+    }
+  };
+
+  const executeConfirmRelease = async (orderId: string) => {
     setReleasingId(orderId);
+    setPendingReleaseOrder(null);
     setError(null);
     setSuccessMsg(null);
 
@@ -44,7 +59,7 @@ export default function ReleasesClient() {
       const result = await res.json();
       if (!res.ok || !result.ok) throw new Error(result.error || "Failed to confirm item release.");
 
-      setSuccessMsg(`Order #${orderId.slice(0, 8)} items successfully released! Product stock decremented.`);
+      setSuccessMsg(`Order #${orderId.slice(0, 8)} items successfully released! Product inventory decremented.`);
       fetchConfirmedOrders();
     } catch (err: any) {
       setError(err.message);
@@ -67,6 +82,42 @@ export default function ReleasesClient() {
           <span>Refresh Queue</span>
         </button>
       </header>
+
+      {/* ⚠️ SOFT PICKUP DATE WARNING MODAL */}
+      {pendingReleaseOrder && (
+        <div className="modal-backdrop">
+          <div className="warning-modal">
+            <div className="modal-icon-header">
+              <AlertTriangle size={32} className="warning-icon" />
+            </div>
+            <h3 className="modal-title">Preferred Pickup Date Warning</h3>
+            <p className="modal-body">
+              The customer's preferred pickup date for Order <code>#{pendingReleaseOrder.id.slice(0, 8)}</code> is{" "}
+              <strong className="date-highlight">
+                <Calendar size={14} className="inline-icon" /> {pendingReleaseOrder.preferred_pickup_date}
+              </strong>.
+              <br /><br />
+              Would you like to release the items now anyway?
+            </p>
+            <div className="modal-actions">
+              <button
+                type="button"
+                className="cancel-btn"
+                onClick={() => setPendingReleaseOrder(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="confirm-btn"
+                onClick={() => executeConfirmRelease(pendingReleaseOrder.id)}
+              >
+                Release Items Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {successMsg && (
         <div className="alert alert--success">
@@ -91,49 +142,60 @@ export default function ReleasesClient() {
         </div>
       ) : (
         <div className="orders-grid">
-          {orders.map((o) => (
-            <div key={o.id} className="release-card">
-              <div className="card-header">
-                <div>
-                  <span className="billing-num">Billing Ref: <strong>{o.billing_number || "PAID"}</strong></span>
-                  <h3 className="customer-name">{o.customer_name || "Guest Customer"}</h3>
-                  <span className="order-id">Order ID: <code>{o.id}</code></span>
+          {orders.map((o) => {
+            const todayStr = new Date().toISOString().split("T")[0];
+            const isFuturePickup = o.preferred_pickup_date && o.preferred_pickup_date > todayStr;
+            return (
+              <div key={o.id} className="release-card">
+                <div className="card-header">
+                  <div>
+                    <span className="billing-num">Billing Ref: <strong>{o.billing_number || "PAID"}</strong></span>
+                    <h3 className="customer-name">{o.customer_name || "Guest Customer"}</h3>
+                    <span className="order-id">Order ID: <code>{o.id}</code></span>
+                  </div>
+                  <span className="type-badge">{(o.order_type || "regular").toUpperCase()}</span>
                 </div>
-                <span className="type-badge">{o.order_type.toUpperCase()}</span>
+
+                {isFuturePickup && (
+                  <div className="pickup-date-badge">
+                    <Calendar size={13} aria-hidden="true" />
+                    <span>Pickup Date: <strong>{o.preferred_pickup_date}</strong></span>
+                  </div>
+                )}
+
+                {o.items && o.items.length > 0 && (
+                  <div className="items-box">
+                    <span className="items-heading">Items to Hand Out:</span>
+                    <ul className="items-list">
+                      {o.items.map((item, idx) => (
+                        <li key={idx} className="item-row">
+                          <strong>{item.quantity} {item.unit_type}</strong>
+                          <span>{item.product?.name || "Agricultural Item"}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div className="card-footer">
+                  <div className="total-val">
+                    <span>Total Paid Value:</span>
+                    <strong>{formatPHP(Number(o.total_price_php))}</strong>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleReleaseClick(o)}
+                    disabled={releasingId === o.id}
+                    className="release-btn"
+                  >
+                    <PackageCheck size={18} aria-hidden="true" />
+                    <span>{releasingId === o.id ? "Releasing Items..." : "Confirm Items Released"}</span>
+                  </button>
+                </div>
               </div>
-
-              {o.items && o.items.length > 0 && (
-                <div className="items-box">
-                  <span className="items-heading">Items to Hand Out:</span>
-                  <ul className="items-list">
-                    {o.items.map((item, idx) => (
-                      <li key={idx} className="item-row">
-                        <strong>{item.quantity} {item.unit_type}</strong>
-                        <span>{item.product?.name || "Product"}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              <div className="card-footer">
-                <div className="total-val">
-                  <span>Total Paid Value:</span>
-                  <strong>{formatPHP(Number(o.total_price_php))}</strong>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => handleConfirmRelease(o.id)}
-                  disabled={releasingId === o.id}
-                  className="release-btn"
-                >
-                  <PackageCheck size={18} aria-hidden="true" />
-                  <span>{releasingId === o.id ? "Releasing Items..." : "Confirm Items Released"}</span>
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -159,6 +221,7 @@ export default function ReleasesClient() {
         .order-id { font-size: 0.7rem; color: var(--color-ink-3); }
 
         .type-badge { font-size: 0.65rem; font-weight: 800; padding: 2px 8px; border-radius: var(--radius-full); background-color: oklch(from var(--color-primary) l c h / 0.12); color: var(--color-primary); }
+        .pickup-date-badge { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3); background-color: oklch(from var(--color-accent) l c h / 0.15); border-radius: var(--radius-md); font-size: var(--text-xs); color: var(--color-ink); }
 
         .items-box { background-color: var(--color-paper-2); padding: var(--space-3); border-radius: var(--radius-lg); }
         .items-heading { font-size: 0.7rem; font-weight: 700; color: var(--color-ink-3); text-transform: uppercase; margin-bottom: var(--space-2); display: block; }
@@ -172,6 +235,18 @@ export default function ReleasesClient() {
 
         .loading-box, .empty-box { padding: var(--space-12); text-align: center; color: var(--color-ink-3); background-color: var(--color-paper); border: 1px solid var(--color-border); border-radius: var(--radius-xl); display: flex; flex-direction: column; align-items: center; gap: var(--space-3); }
         .empty-icon { color: var(--color-ink-3); opacity: 0.5; }
+
+        .modal-backdrop { position: fixed; inset: 0; background-color: oklch(0% 0 0 / 0.5); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: var(--space-4); }
+        .warning-modal { background-color: var(--color-paper); border-radius: var(--radius-xl); border: 1px solid var(--color-border); padding: var(--space-6); max-width: 440px; width: 100%; display: flex; flex-direction: column; gap: var(--space-4); box-shadow: 0 20px 40px oklch(0% 0 0 / 0.2); }
+        .modal-icon-header { display: flex; justify-content: center; }
+        .warning-icon { color: var(--color-accent); }
+        .modal-title { font-family: var(--font-display); font-size: var(--text-xl); text-align: center; color: var(--color-heading); margin: 0; }
+        .modal-body { font-size: var(--text-sm); color: var(--color-ink-2); text-align: center; margin: 0; line-height: 1.5; }
+        .date-highlight { color: var(--color-primary); font-weight: 700; }
+        .inline-icon { display: inline; vertical-align: text-bottom; }
+        .modal-actions { display: flex; gap: var(--space-3); margin-top: var(--space-2); }
+        .cancel-btn { flex: 1; padding: var(--space-3); border: 1px solid var(--color-border); background: var(--color-paper-2); border-radius: var(--radius-md); font-weight: 600; cursor: pointer; color: var(--color-ink); }
+        .confirm-btn { flex: 1; padding: var(--space-3); border: none; background: var(--color-primary); color: var(--color-primary-fg); border-radius: var(--radius-md); font-weight: 600; cursor: pointer; }
       `}</style>
     </div>
   );

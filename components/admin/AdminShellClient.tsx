@@ -99,14 +99,11 @@ export default function AdminShellClient({
       <style>{`
         .admin-shell {
           display: flex;
-          position: fixed;
-          inset: 0;
-          width: 100vw;
-          height: 100vh;
-          height: 100dvh;
-          overflow: hidden;
+          min-height: 100vh;
+          min-height: 100dvh;
           background-color: var(--color-paper-2);
-          z-index: 1000;
+          position: relative;
+          width: 100%;
         }
 
         .admin-mobile-header {
@@ -142,8 +139,13 @@ export default function AdminShellClient({
         }
 
         .admin-sidebar {
+          position: fixed;
+          top: 0;
+          left: 0;
+          bottom: 0;
           width: 260px;
-          height: 100%;
+          height: 100vh;
+          height: 100dvh;
           flex-shrink: 0;
           background-color: var(--color-primary-dark);
           display: flex;
@@ -151,6 +153,7 @@ export default function AdminShellClient({
           border-right: 1px solid oklch(from var(--color-primary-dark) calc(l - 0.08) c h);
           transition: transform var(--dur-slow) var(--ease-out);
           z-index: 100;
+          overflow: hidden;
         }
         .admin-sidebar__header {
           padding: var(--space-5) var(--space-6);
@@ -205,7 +208,7 @@ export default function AdminShellClient({
           flex: 1;
           display: flex;
           flex-direction: column;
-          overflow-y: auto;
+          overflow: hidden;
         }
 
         .admin-sidebar__footer {
@@ -254,12 +257,15 @@ export default function AdminShellClient({
         }
 
         .admin-main {
+          margin-left: 260px;
           flex: 1;
-          height: 100%;
-          overflow-y: auto;
+          min-height: 100vh;
+          min-height: 100dvh;
           padding: var(--space-8);
           min-width: 0;
+          width: calc(100% - 260px);
         }
+
 
         @media (max-width: 768px) {
           .admin-shell {
