@@ -63,7 +63,7 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
           </div>
           <h1 className="login-title">Admin Sign In</h1>
           <p className="login-subtitle">
-            Sign in with your authorized CLSU Google account to access inventory, orders, scanner, and sales metrics.
+            Sign in with your authorized CLSU Google account to access inventory, orders, and sales metrics.
           </p>
         </div>
 

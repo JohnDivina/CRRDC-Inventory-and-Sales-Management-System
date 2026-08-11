@@ -10,7 +10,6 @@ import {
   Briefcase,
   Package,
   Users,
-  QrCode,
   Globe
 } from "lucide-react";
 
@@ -21,7 +20,6 @@ const NAV_ITEMS = [
   { href: "/admin/project-billings", label: "Project Billings", Icon: Briefcase },
   { href: "/admin/inventory", label: "Inventory & Audit", Icon: Package },
   { href: "/admin/accounts", label: "Staff Accounts", Icon: Users },
-  { href: "/admin/scanner", label: "QR Scanner (Legacy)", Icon: QrCode },
 ];
 
 

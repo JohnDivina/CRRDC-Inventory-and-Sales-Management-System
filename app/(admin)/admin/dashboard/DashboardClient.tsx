@@ -8,7 +8,6 @@ import {
   TrendingUp,
   AlertTriangle,
   Package,
-  QrCode,
   PlusCircle,
   ArrowRight,
 } from "lucide-react";
@@ -43,11 +42,7 @@ export default function DashboardClient({
         </div>
 
         <div className="dashboard__header-actions">
-          <Link href="/admin/scanner" className="action-btn action-btn--primary">
-            <QrCode size={18} aria-hidden="true" />
-            <span>Scan QR Code</span>
-          </Link>
-          <Link href="/admin/inventory/new" className="action-btn action-btn--secondary">
+          <Link href="/admin/inventory/new" className="action-btn action-btn--primary">
             <PlusCircle size={18} aria-hidden="true" />
             <span>Add Product</span>
           </Link>
