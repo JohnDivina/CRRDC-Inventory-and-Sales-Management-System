@@ -4,7 +4,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { formatPHP, type Order } from "@/types";
-import { Search, CheckCircle2, Clock, Eye, ClipboardList, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Search, CheckCircle2, Clock, Eye, ClipboardList, AlertTriangle, ShieldCheck, Printer } from "lucide-react";
 
 interface OrdersClientProps {
   initialOrders: Order[];
@@ -66,6 +66,20 @@ export default function OrdersClient({ initialOrders }: OrdersClientProps) {
       alert("Failed to confirm order");
     } finally {
       setWarningModal(null);
+    }
+  };
+
+  const handlePrintBillingStatement = async (order: Order) => {
+    try {
+      const { generateBillingStatement } = await import("@/lib/pdf-billing");
+      // Fetch line items for the order
+      const res = await fetch(`/api/orders/${order.id}`);
+      const data = await res.json();
+      const items = data.ok && data.data?.items ? data.data.items : [];
+      generateBillingStatement(order, items, "CRRDC Cashier Staff");
+    } catch (err) {
+      console.error("Billing Statement Generation Error:", err);
+      alert("Failed to generate billing statement.");
     }
   };
 
@@ -196,6 +210,17 @@ export default function OrdersClient({ initialOrders }: OrdersClientProps) {
                         >
                           <ShieldCheck size={14} />
                           <span>Confirm Payment</span>
+                        </button>
+                      )}
+                      {o.status !== "pending" && (
+                        <button
+                          type="button"
+                          onClick={() => handlePrintBillingStatement(o)}
+                          className="icon-btn"
+                          title="Print Official Billing Statement"
+                          style={{ color: "var(--color-primary)", backgroundColor: "oklch(from var(--color-primary) l c h / 0.1)" }}
+                        >
+                          <Printer size={16} aria-hidden="true" />
                         </button>
                       )}
                       <Link href={`/checkout/order/${o.id}`} target="_blank" className="icon-btn" title="View Tracker & Receipt">

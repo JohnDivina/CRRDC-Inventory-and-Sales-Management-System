@@ -13,16 +13,30 @@ export async function POST(request: Request, { params }: RouteProps) {
     const supabase = createAdminClient();
 
     let staffId = "00000000-0000-0000-0000-000000000000";
+    let staffName = "CRRDC Cashier";
+
     try {
       const serverClient = await createClient();
       const { data: { user } } = await serverClient.auth.getUser();
-      if (user) staffId = user.id;
+      if (user) {
+        staffId = user.id;
+        staffName = user.email || "CRRDC Cashier";
+        const { data: profile } = await supabase
+          .from("admin_profiles")
+          .select("full_name, designation")
+          .eq("id", user.id)
+          .single();
+        if (profile?.full_name) {
+          staffName = profile.full_name;
+        }
+      }
     } catch {}
 
     // Call atomic SQL RPC function `confirm_order_payment`
     const { data: rpcResult, error: rpcError } = await supabase.rpc("confirm_order_payment", {
       p_order_id: orderId,
       p_cashier_id: staffId,
+      p_cashier_name: staffName,
     });
 
     if (rpcError) {
@@ -48,10 +62,22 @@ export async function POST(request: Request, { params }: RouteProps) {
         amount_paid_php: amountPaid,
       }).eq("id", orderId);
 
+      // Record in Unified Audit Log
+      await supabase.from("system_audit_logs").insert({
+        actor_id: staffId !== "00000000-0000-0000-0000-000000000000" ? staffId : null,
+        actor_name: staffName,
+        actor_designation: "Cashier Staff",
+        action_type: "cashier_payment_confirm",
+        target_table: "orders",
+        record_id: orderId,
+        notes: `Confirmed payment. Billing Reference No: ${fallbackBillingNum}`,
+      });
+
       return NextResponse.json({
         ok: true,
         billingNumber: fallbackBillingNum,
         status: newStatus,
+        processedByName: staffName,
       });
     }
 
@@ -63,6 +89,7 @@ export async function POST(request: Request, { params }: RouteProps) {
       ok: true,
       billingNumber: rpcResult?.billing_number,
       status: rpcResult?.status,
+      processedByName: staffName,
     });
   } catch (err: any) {
     return NextResponse.json({ ok: false, error: err.message || "Failed to confirm order payment." }, { status: 500 });

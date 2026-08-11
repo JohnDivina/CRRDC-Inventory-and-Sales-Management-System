@@ -13,16 +13,30 @@ export async function POST(request: Request, { params }: RouteProps) {
     const supabase = createAdminClient();
 
     let staffId = "00000000-0000-0000-0000-000000000000";
+    let staffName = "Seed Lab Staff";
+
     try {
       const serverClient = await createClient();
       const { data: { user } } = await serverClient.auth.getUser();
-      if (user) staffId = user.id;
+      if (user) {
+        staffId = user.id;
+        staffName = user.email || "Seed Lab Staff";
+        const { data: profile } = await supabase
+          .from("admin_profiles")
+          .select("full_name, designation")
+          .eq("id", user.id)
+          .single();
+        if (profile?.full_name) {
+          staffName = profile.full_name;
+        }
+      }
     } catch {}
 
     // Call atomic RPC release function
     const { data: rpcResult, error: rpcError } = await supabase.rpc("release_order_items", {
       p_order_id: orderId,
       p_staff_id: staffId,
+      p_staff_name: staffName,
     });
 
     if (rpcError) {
@@ -40,10 +54,22 @@ export async function POST(request: Request, { params }: RouteProps) {
             await supabase.from("inventory_audit_log").insert({
               product_id: item.product_id,
               changed_by: staffId,
+              changed_by_name: staffName,
               change_type: "order_deduction",
               old_stock_qty: prod.stock_qty,
               new_stock_qty: newQty,
               note: `Item release for Order #${orderId.slice(0, 8)}`,
+            });
+
+            await supabase.from("system_audit_logs").insert({
+              actor_id: staffId !== "00000000-0000-0000-0000-000000000000" ? staffId : null,
+              actor_name: staffName,
+              actor_designation: "Seed Lab Staff",
+              action_type: "seed_lab_release",
+              target_table: "products",
+              record_id: item.product_id,
+              quantity: item.quantity,
+              notes: `Released product "${prod.name}" for Order #${orderId.slice(0, 8)}`,
             });
           }
         }

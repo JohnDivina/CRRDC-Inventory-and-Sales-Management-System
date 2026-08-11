@@ -58,6 +58,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, data: newProduct });
     }
 
+    // Log in System Audit Trail
+    await supabase.from("system_audit_logs").insert({
+      action_type: "inventory_addition",
+      target_table: "products",
+      record_id: data.id,
+      quantity: data.stock_qty,
+      actor_name: "Staff Administrator",
+      actor_designation: "Staff Administrator",
+      notes: `Added new product "${data.name}" to inventory with initial stock of ${data.stock_qty} ${data.unit_type}.`,
+    });
+
     return NextResponse.json({ ok: true, data });
   } catch (err: any) {
     return NextResponse.json(

@@ -10,6 +10,7 @@ import {
   Briefcase,
   Package,
   Users,
+  History,
   Globe
 } from "lucide-react";
 
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { href: "/admin/releases", label: "Seed Lab Releases", Icon: PackageCheck },
   { href: "/admin/project-billings", label: "Project Billings", Icon: Briefcase },
   { href: "/admin/inventory", label: "Inventory & Audit", Icon: Package },
+  { href: "/admin/audit-logs", label: "System Audit Logs", Icon: History },
   { href: "/admin/accounts", label: "Staff Accounts", Icon: Users },
 ];
 

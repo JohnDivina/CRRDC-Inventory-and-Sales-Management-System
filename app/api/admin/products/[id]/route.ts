@@ -38,6 +38,18 @@ export async function PUT(request: Request, { params }: RouteProps) {
       return NextResponse.json({ ok: true, data: { id, ...updates } });
     }
 
+    if (data) {
+      await supabase.from("system_audit_logs").insert({
+        action_type: "inventory_edit",
+        target_table: "products",
+        record_id: data.id,
+        quantity: data.stock_qty || 0,
+        actor_name: "Staff Administrator",
+        actor_designation: "Staff Administrator",
+        notes: `Updated product details/stock for "${data.name}" (New stock: ${data.stock_qty}).`,
+      });
+    }
+
     return NextResponse.json({ ok: true, data });
   } catch (err: any) {
     return NextResponse.json(
